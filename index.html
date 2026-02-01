@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>KrizmLauncher | Cloud</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@200;400;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --accent: #00d2ff;
+            --glass: rgba(255, 255, 255, 0.08);
+            --glass-border: rgba(255, 255, 255, 0.15);
+        }
+
+        body {
+            margin: 0;
+            font-family: 'Poppins', sans-serif;
+            background: #000;
+            color: white;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .bg-gradient {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            z-index: -1;
+            background: radial-gradient(circle at top right, #1a1a2e, #000000);
+        }
+
+        /* --- AUTH SCREEN --- */
+        #auth-screen {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: black;
+            z-index: 500;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .auth-box {
+            width: 100%;
+            max-width: 350px;
+            text-align: center;
+            background: var(--glass);
+            padding: 30px;
+            border-radius: 30px;
+            border: 1px solid var(--glass-border);
+            backdrop-filter: blur(20px);
+        }
+
+        input {
+            width: 100%;
+            background: rgba(255,255,255,0.05);
+            border: 1px solid var(--glass-border);
+            color: white;
+            padding: 15px;
+            margin-bottom: 15px;
+            border-radius: 12px;
+            font-size: 0.9rem;
+            outline: none;
+        }
+
+        input:focus { border-color: var(--accent); }
+
+        .btn-main {
+            background: white; color: black;
+            border: none; padding: 15px;
+            border-radius: 12px; width: 100%;
+            font-weight: 600; cursor: pointer;
+            margin-top: 10px;
+        }
+
+        .link-toggle {
+            font-size: 0.8rem; color: var(--accent);
+            margin-top: 20px; cursor: pointer; display: block;
+        }
+
+        /* --- LAUNCHER UI --- */
+        #main-launcher { display: none; flex-direction: column; height: 100%; }
+
+        .header { padding: 40px 20px 10px; text-align: center; }
+        #clock { font-size: 3rem; font-weight: 200; margin: 0; }
+
+        .app-container {
+            flex: 1;
+            padding: 20px;
+            display: grid;
+            grid-template-columns: repeat(4, 1fr); /* Fix 4 oszlop */
+            grid-auto-rows: 100px;
+            gap: 15px;
+            overflow-y: auto;
+            justify-items: center;
+        }
+
+        .app-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            width: 70px;
+            position: relative;
+        }
+
+        .app-icon {
+            width: 60px; height: 60px;
+            background: var(--glass);
+            border: 1px solid var(--glass-border);
+            border-radius: 20px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 24px; margin-bottom: 5px;
+            backdrop-filter: blur(10px);
+        }
+
+        .app-name { font-size: 0.65rem; opacity: 0.7; text-align: center; width: 100%; overflow: hidden; }
+
+        .delete-dot {
+            position: absolute; top: -5px; right: -5px;
+            background: rgba(255,0,0,0.7); border: none;
+            color: white; border-radius: 50%; width: 20px; height: 20px;
+            font-size: 12px; cursor: pointer;
+        }
+
+        .bottom-nav { padding: 20px; display: flex; justify-content: center; gap: 15px; }
+        
+        /* Modal */
+        #modal {
+            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.9); z-index: 1000; padding: 40px;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="bg-gradient"></div>
+
+    <div id="auth-screen">
+        <div class="auth-box" id="login-form">
+            <h2 style="font-weight: 200;">Krizm Login</h2>
+            <input type="email" id="login-email" placeholder="E-mail">
+            <input type="password" id="login-pass" placeholder="Jelszó">
+            <button class="btn-main" onclick="login()">Belépés</button>
+            <span class="link-toggle" onclick="showAuth('reg')">Nincs még fiókom? Regisztráció</span>
+        </div>
+
+        <div class="auth-box" id="reg-form" style="display: none;">
+            <h2 style="font-weight: 200;">Regisztráció</h2>
+            <input type="email" id="reg-email" placeholder="E-mail">
+            <input type="password" id="reg-pass" placeholder="Jelszó (min. 6 karakter)">
+            <button class="btn-main" onclick="register()">Fiók létrehozása</button>
+            <span class="link-toggle" onclick="showAuth('login')">Már van fiókom? Belépés</span>
+        </div>
+    </div>
+
+    <div id="main-launcher">
+        <div class="header">
+            <div style="font-size: 0.7rem; letter-spacing: 3px; opacity: 0.5;">KRIZM CLOUD</div>
+            <h1 id="clock">00:00</h1>
+        </div>
+
+        <div class="app-container" id="appGrid"></div>
+
+        <div class="bottom-nav">
+            <button class="btn-main" style="width: auto; padding: 10px 30px;" onclick="openModal()">+ App</button>
+            <button onclick="location.reload()" style="background:none; border:none; color:white; opacity:0.4;">Kijelentkezés</button>
+        </div>
+    </div>
+
+    <div id="modal">
+        <h2 style="font-weight: 200;">Új parancsikon</h2>
+        <input type="text" id="newAppName" placeholder="Név">
+        <input type="text" id="newAppUrl" placeholder="https:// (Link)">
+        <button class="btn-main" onclick="addApp()">Mentés a felhőbe</button>
+        <button onclick="closeModal()" style="background:none; border:none; color:grey; width:100%; margin-top:20px;">Mégse</button>
+    </div>
+
+    <script>
+        let currentUser = null;
+
+        // --- AUTH LOGIKA ---
+        function showAuth(type) {
+            document.getElementById('login-form').style.display = type === 'login' ? 'block' : 'none';
+            document.getElementById('reg-form').style.display = type === 'reg' ? 'block' : 'none';
+        }
+
+        function register() {
+            const email = document.getElementById('reg-email').value;
+            const pass = document.getElementById('reg-pass').value;
+            if(!email.includes('@') || pass.length < 6) return alert("Hibás adatok!");
+
+            let users = JSON.parse(localStorage.getItem('krizm_users')) || {};
+            if(users[email]) return alert("Ez az e-mail már foglalt!");
+
+            users[email] = { password: pass, apps: [{name: 'Google', url: 'https://google.com', icon: 'G'}] };
+            localStorage.setItem('krizm_users', JSON.stringify(users));
+            alert("Sikeres regisztráció! Most már beléphetsz.");
+            showAuth('login');
+        }
+
+        function login() {
+            const email = document.getElementById('login-email').value;
+            const pass = document.getElementById('login-pass').value;
+            let users = JSON.parse(localStorage.getItem('krizm_users')) || {};
+
+            if(users[email] && users[email].password === pass) {
+                currentUser = email;
+                document.getElementById('auth-screen').style.display = 'none';
+                document.getElementById('main-launcher').style.display = 'flex';
+                renderApps();
+            } else {
+                alert("Hibás e-mail vagy jelszó!");
+            }
+        }
+
+        // --- LAUNCHER LOGIKA ---
+        function renderApps() {
+            const users = JSON.parse(localStorage.getItem('krizm_users'));
+            const apps = users[currentUser].apps;
+            const grid = document.getElementById('appGrid');
+            grid.innerHTML = '';
+
+            apps.forEach((app, index) => {
+                grid.innerHTML += `
+                    <div class="app-item">
+                        <button class="delete-dot" onclick="deleteApp(${index})">×</button>
+                        <a href="${app.url}" target="_blank" style="text-decoration:none; color:white; text-align:center;">
+                            <div class="app-icon">${app.icon}</div>
+                            <div class="app-name">${app.name}</div>
+                        </a>
+                    </div>
+                `;
+            });
+        }
+
+        function addApp() {
+            const name = document.getElementById('newAppName').value;
+            const url = document.getElementById('newAppUrl').value;
+            if(!name || !url) return;
+
+            let users = JSON.parse(localStorage.getItem('krizm_users'));
+            users[currentUser].apps.push({ name, url, icon: name.charAt(0).toUpperCase() });
+            localStorage.setItem('krizm_users', JSON.stringify(users));
+            
+            renderApps();
+            closeModal();
+        }
+
+        function deleteApp(index) {
+            let users = JSON.parse(localStorage.getItem('krizm_users'));
+            users[currentUser].apps.splice(index, 1);
+            localStorage.setItem('krizm_users', JSON.stringify(users));
+            renderApps();
+        }
+
+        // Segédfunkciók
+        function openModal() { document.getElementById('modal').style.display = 'block'; }
+        function closeModal() { document.getElementById('modal').style.display = 'none'; }
+        
+        setInterval(() => {
+            const now = new Date();
+            document.getElementById('clock').innerText = String(now.getHours()).padStart(2,'0')+":"+String(now.getMinutes()).padStart(2,'0');
+        }, 1000);
+    </script>
+</body>
+</html>
